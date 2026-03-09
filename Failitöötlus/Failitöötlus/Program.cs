@@ -6,86 +6,68 @@ class Program
 {
     static void Main()
     {
-        // Ülesanne 1
-        Console.WriteLine("Sisesta üks Itaalia toidu nimi:");
-        string toit = Console.ReadLine();
-
         string basePath = AppDomain.CurrentDomain.BaseDirectory;
         string retseptidPath = Path.Combine(basePath, "Retseptid.txt");
+        string koostisosadPath = Path.Combine(basePath, "Koostisosad.txt");
+        string menyyPath = Path.Combine(basePath, "Menuu.txt");
+
+        // Ülesanne 1
+        Console.Write("Sisesta üks Itaalia toidu nimi: ");
+        string toit = Console.ReadLine();
 
         try
         {
-            StreamWriter writer = new StreamWriter(retseptidPath, true);
-            writer.WriteLine(toit);
-            writer.Close();
-
+            File.AppendAllText(retseptidPath, toit + Environment.NewLine);
             Console.WriteLine("Toit salvestati faili!");
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Viga faili kirjutamisel: " + ex.Message);
+            Console.WriteLine($"Viga faili kirjutamisel: {ex.Message}");
         }
-
 
         // Ülesanne 2
         Console.WriteLine("\n--- Kogu menüü failist ---");
-
         try
         {
-            StreamReader reader = new StreamReader(retseptidPath);
-            string sisu = reader.ReadToEnd();
-            reader.Close();
-
-            Console.WriteLine(sisu);
+            if (File.Exists(retseptidPath))
+                Console.WriteLine(File.ReadAllText(retseptidPath));
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Faili lugemisel tekkis viga: " + ex.Message);
+            Console.WriteLine($"Faili lugemisel tekkis viga: {ex.Message}");
         }
 
-
         // Ülesanne 3
-        string koostisosadPath = Path.Combine(basePath, "Koostisosad.txt");
-
         List<string> koostisosad = new List<string>();
 
         try
         {
-            string[] read = File.ReadAllLines(koostisosadPath);
-            koostisosad = new List<string>(read);
+            if (File.Exists(koostisosadPath))
+                koostisosad.AddRange(File.ReadAllLines(koostisosadPath));
+            else
+                Console.WriteLine("Koostisosad.txt faili ei leitud.");
         }
-        catch
+        catch (Exception ex)
         {
-            Console.WriteLine("Koostisosad.txt faili ei leitud.");
+            Console.WriteLine($"Viga faili lugemisel: {ex.Message}");
         }
 
         if (koostisosad.Count > 0)
-        {
             koostisosad[0] = "Kvaliteetne oliiviõli";
-        }
 
         koostisosad.Remove("Ketšup");
 
         Console.WriteLine("\n--- Uuendatud koostisosad ---");
-        foreach (string k in koostisosad)
-        {
+        foreach (var k in koostisosad)
             Console.WriteLine(k);
-        }
-
 
         // Ülesanne 4
-        Console.WriteLine("\nSisesta koostisosa mida otsida:");
+        Console.Write("\nSisesta koostisosa mida otsida: ");
         string otsitav = Console.ReadLine();
 
-        if (koostisosad.Contains(otsitav))
-        {
-            Console.WriteLine("Koostisosa on olemas!");
-        }
-        else
-        {
-            Console.WriteLine("Seda koostisosa meil retseptis ei ole.");
-        }
-
+        Console.WriteLine(koostisosad.Contains(otsitav)
+            ? "Koostisosa on olemas!"
+            : "Seda koostisosa meil retseptis ei ole.");
 
         // Ülesanne 5
         try
@@ -95,50 +77,36 @@ class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Salvestamisel tekkis viga: " + ex.Message);
+            Console.WriteLine($"Salvestamisel tekkis viga: {ex.Message}");
         }
 
-
         // Ülesanne 6
-        string menyyPath = Path.Combine(basePath, "Menuu.txt");
-
         if (!File.Exists(menyyPath))
         {
-            string[] algAndmed =
+            File.WriteAllLines(menyyPath, new[]
             {
                 "Margherita pitsa;San Marzano tomatid, värske mozzarella, basiilik;8.50",
                 "Pasta Carbonara;Spagetid, guanciale, pecorino juust, muna;12.00",
                 "Tiramisu;Mascarpone, espresso, savoiardi küpsised;6.50"
-            };
-
-            File.WriteAllLines(menyyPath, algAndmed);
+            });
         }
 
-        List<Tuple<string, string, double>> menyyList = new List<Tuple<string, string, double>>();
+        var menyyList = new List<(string nimi, string koost, double hind)>();
 
-        string[] readMenu = File.ReadAllLines(menyyPath);
-
-        foreach (string rida in readMenu)
+        foreach (var rida in File.ReadAllLines(menyyPath))
         {
-            string[] osad = rida.Split(';');
+            var osad = rida.Split(';');
 
-            string nimi = osad[0];
-            string koost = osad[1];
-            double hind = double.Parse(osad[2]);
-
-            menyyList.Add(Tuple.Create(nimi, koost, hind));
+            if (osad.Length == 3 && double.TryParse(osad[2], out double hind))
+                menyyList.Add((osad[0], osad[1], hind));
         }
 
         Console.WriteLine("\n=== ITAALIA RESTORANI MENÜÜ ===\n");
 
         foreach (var roog in menyyList)
         {
-            string roaNimi = roog.Item1;
-            string koost = roog.Item2;
-            double hind = roog.Item3;
-
-            Console.WriteLine($"{roaNimi.PadRight(30)} {hind} €");
-            Console.WriteLine($"   {koost}");
+            Console.WriteLine($"{roog.nimi.PadRight(30)} {roog.hind:F2} €");
+            Console.WriteLine($"   {roog.koost}");
             Console.WriteLine();
         }
     }
